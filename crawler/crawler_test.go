@@ -26,7 +26,7 @@ func TestCrawlerInvalidDomain(t *testing.T) {
 		assert.NotNil(t, err, "Shouldn't be nil")
 		assert.EqualError(t, err, "Invalid domain", "Error value should be equal")
 	}()
-	<-c.Quit
+	<-c.Done
 }
 
 func TestCrawler(t *testing.T) {
@@ -56,7 +56,7 @@ func TestCrawler(t *testing.T) {
 
 	startURL := "http://www.redhat.com/en"
 	go c.Crawl(startURL)
-	<-c.Quit
+	<-c.Done
 
 	assert.NotNil(t, c.Sitemap, "Should be not nil")
 	assert.Equal(t, expectedSitemap, c.Sitemap, "Outcome should be equal")

@@ -22,10 +22,6 @@ func main() {
 	var configFile string
 	flag.StringVar(&configFile, "conf", "config/config.json", "configuration file")
 	flag.Parse()
-	if flag.NFlag() != 1 {
-		flag.PrintDefaults()
-		os.Exit(1)
-	}
 
 	if nCPU := runtime.NumCPU(); nCPU > 1 {
 		runtime.GOMAXPROCS(nCPU)
