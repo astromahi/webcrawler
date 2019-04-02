@@ -11,6 +11,24 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+func TestCrawlerInvalidDomain(t *testing.T) {
+	cfg, err := config.Parse("../config/config.json")
+	assert.Nil(t, err, "Should be nil")
+	assert.NotNil(t, cfg, "Shouldn't be nil")
+
+	c := New(cfg)
+	assert.NotNil(t, c, "Shouldn't be nil")
+	assert.IsType(t, &Crawler{}, c, "Type should be same")
+
+	startURL := "language/en"
+	go func() {
+		err := c.Crawl(startURL)
+		assert.NotNil(t, err, "Shouldn't be nil")
+		assert.EqualError(t, err, "Invalid domain", "Error value should be equal")
+	}()
+	<-c.Quit
+}
+
 func TestCrawler(t *testing.T) {
 	cfg, err := config.Parse("../config/config.json")
 	assert.Nil(t, err, "Should be nil")

@@ -16,20 +16,24 @@ import (
 // A HTTP handler
 func CrawlHandler(w http.ResponseWriter, r *http.Request) {
 	uri := r.URL.Query().Get("uri")
+	log.Println("INFO: Received crawl request for - ", uri)
 	cfg := config.Get()
 
 	bot := crawler.New(cfg)
 
 	// Custom fetcher function
 	fetcher := func(link string) (io.ReadCloser, error) {
+		tlsConfig := &tls.Config{
+			InsecureSkipVerify: true,
+		}
+		transport := &http.Transport{
+			TLSClientConfig: tlsConfig,
+		}
+
 		// A HTTP client with timeout
 		client := http.Client{
-			Timeout: time.Duration(cfg.ReadTimeout) * time.Second,
-			Transport: &http.Transport{
-				TLSClientConfig: &tls.Config{
-					InsecureSkipVerify: true,
-				},
-			},
+			Transport: transport,
+			Timeout:   time.Duration(cfg.FetchTimeout) * time.Second,
 		}
 
 		// Validating response

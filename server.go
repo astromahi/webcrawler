@@ -19,7 +19,7 @@ import (
 )
 
 func main() {
-	var configFile = flag.String("config", "config/config.json", "configuration file")
+	var configFile = flag.String("config", "./config/config.json", "configuration file")
 	flag.Parse()
 	if flag.NFlag() != 1 {
 		flag.PrintDefaults()

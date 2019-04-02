@@ -6,4 +6,4 @@ nohup.out
 .DS_Store
 main
 server
-
+client/client
