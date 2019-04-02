@@ -1,0 +1,67 @@
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  name: webcrawler-deployment
+spec:
+  replicas: 5
+  revisionHistoryLimit: 2
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 1
+      maxSurge: 1
+  template:
+    metadata:
+      labels:
+        app: webcrawler
+    spec:
+      containers:
+        - name: webcrawler
+          image: Repo URL here
+          env:
+            - name: CONF
+              value: "config/config.json"
+            - name: GOMAXPROCS
+              value: "2"
+          volumeMounts:
+              - mountPath: "/go/src/webcrawler/log"
+                name: webcrawler
+          resources:
+            requests:
+              cpu: "1"
+            limits:
+              cpu: "2"
+              memory: "2Gi"
+          imagePullPolicy: Always
+          ports:
+          - containerPort: 8080
+          livenessProbe:
+            initialDelaySeconds: 15
+            periodSeconds: 30
+            timeoutSeconds: 8
+            successThreshold: 1
+            failureThreshold: 3
+            httpGet:
+              path: /ping
+              port: 8080
+              scheme: HTTP
+      restartPolicy: Always
+      terminationGracePeriodSeconds: 30
+      volumes:
+        - name: webcrawler
+          hostPath:
+            path: "/home/data/webcrawler/"
+            type: Directory
+---
+apiVersion: autoscaling/v1
+kind: HorizontalPodAutoscaler
+metadata:
+  name: webcrawler
+spec:
+  maxReplicas: 10
+  minReplicas: 5
+  scaleTargetRef:
+    apiVersion: extensions/v1beta1
+    kind: Deployment
+    name: webcrawler-deployment
+  targetCPUUtilizationPercentage: 80

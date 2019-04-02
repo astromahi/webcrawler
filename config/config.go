@@ -2,9 +2,9 @@ package config
 
 import (
 	"encoding/json"
+	"errors"
 	"io/ioutil"
 	"sync"
-	"errors"
 )
 
 // Config holds configuration options
@@ -17,6 +17,7 @@ type Config struct {
 	FetchTimeout int    `json:"fetch_timeout"`
 	QueueSize    int    `json:"queue_size"`
 	CrawlDelay   int    `json:"crawl_delay"`
+	Depth        int    `json:"depth"`
 }
 
 var (

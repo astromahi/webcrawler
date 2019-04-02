@@ -1,10 +1,11 @@
 {
   "http_address": "127.0.0.1",
-  "port": 9000,
+  "port": 8080,
   "read_timeout": 12,
-  "write_timeout": 5,
+  "write_timeout": 180,
   "concurrency": 10,
   "fetch_timeout": 10,
-  "queue_size": 1000,
-  "crawl_delay": 2
+  "queue_size": 100000,
+  "crawl_delay": 300,
+  "depth": 3
 }
