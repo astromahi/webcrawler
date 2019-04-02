@@ -16,15 +16,20 @@ import (
 type Crawler struct {
 	seedURL     *url.URL
 	concurrency chan struct{}
-	queue       chan string
+	queue       chan urlctx
 	crawldelay  int
-	depth       int
+	depthctl    int
 	timeout     int
 	visited     map[string]bool
 
 	FetcherFunc func(string) (io.ReadCloser, error)
 	Sitemap     map[string][]string
-	Quit        chan struct{}
+	Done        chan struct{}
+}
+
+type urlctx struct {
+	url   string
+	depth int
 }
 
 // New generates a brand new crawler object
@@ -50,15 +55,20 @@ func New(c *config.Config) *Crawler {
 		queueCap = 1000
 	}
 
+	depth := c.Depth
+	if depth < 1 {
+		depth = 1
+	}
+
 	return &Crawler{
 		concurrency: make(chan struct{}, int(concurrency)),
-		queue:       make(chan string, int(queueCap)),
+		queue:       make(chan urlctx, int(queueCap)),
 		crawldelay:  cdelay,
-		depth:       c.Depth,
+		depthctl:    depth,
 		timeout:     timeout,
 		visited:     make(map[string]bool),
 		Sitemap:     make(map[string][]string),
-		Quit:        make(chan struct{}),
+		Done:        make(chan struct{}),
 	}
 }
 
@@ -68,41 +78,47 @@ func (c *Crawler) Crawl(seed string) error {
 	var err error
 	if c.seedURL, err = url.Parse(seed); err != nil {
 		log.Println("ERROR: Couldn't parse seed url - ", err)
-		c.Quit <- struct{}{}
+		c.Done <- struct{}{}
 		return err
 	}
 
 	if c.seedURL.Hostname() == "" {
 		err = errors.New("Invalid domain")
 		log.Println("ERROR: ", err)
-		c.Quit <- struct{}{}
+		c.Done <- struct{}{}
 		return err
 	}
 
 	// Initialising queue with seed URL
-	c.queue <- seed
+	c.queue <- urlctx{seed, 0}
 
 	// Setting crawl delay
 	ticker := time.NewTicker(time.Duration(c.crawldelay) * time.Millisecond)
 
-	for link := range c.queue {
-		if alreadyVisited := c.visited[link]; alreadyVisited {
+	for ctx := range c.queue {
+		if alreadyVisited := c.visited[ctx.url]; alreadyVisited {
 			continue
 		}
 		<-ticker.C
 
-		log.Println("INFO: Crawling - ", link)
+		// Controlling depth of the crawl
+		if c.depthctl > 0 && c.depthctl < ctx.depth {
+			c.Done <- struct{}{}
+			return nil
+		}
 
-		c.visited[link] = true
+		log.Println("INFO: Crawling - ", ctx.url, ctx.depth)
+
+		c.visited[ctx.url] = true
 		c.concurrency <- struct{}{}
-		go c.run(link)
+		go c.run(ctx)
 	}
 
 	return nil
 }
 
 // Connecting fetcher & parser
-func (c *Crawler) run(u string) {
+func (c *Crawler) run(ctx urlctx) {
 	defer func() {
 		if err := recover(); err != nil {
 			log.Println("panic: ", err)
@@ -110,11 +126,12 @@ func (c *Crawler) run(u string) {
 		<-c.concurrency
 
 		if len(c.concurrency) == 0 && len(c.queue) == 0 {
-			c.Quit <- struct{}{}
+			close(c.queue)
+			c.Done <- struct{}{}
 		}
 	}()
 
-	resp, err := c.FetcherFunc(u)
+	resp, err := c.FetcherFunc(ctx.url)
 	if err != nil {
 		log.Println("ERROR: ", err)
 		return
@@ -122,9 +139,9 @@ func (c *Crawler) run(u string) {
 
 	links := c.parseHTML(resp)
 	for idx := range links {
-		c.queue <- links[idx]
-		if links[idx] != u {
-			c.Sitemap[u] = append(c.Sitemap[u], links[idx])
+		c.queue <- urlctx{links[idx], ctx.depth + 1}
+		if links[idx] != ctx.url {
+			c.Sitemap[ctx.url] = append(c.Sitemap[ctx.url], links[idx])
 		}
 	}
 
@@ -166,6 +183,8 @@ func (c *Crawler) parseHTML(reader io.Reader) []string {
 						if isAlreadySent := tracker[abURL]; isAlreadySent {
 							continue
 						}
+
+						// Tracker for avoiding duplicates in a depth
 						tracker[abURL] = true
 						links = append(links, abURL)
 					}
@@ -176,8 +195,6 @@ func (c *Crawler) parseHTML(reader io.Reader) []string {
 			return links
 		}
 	}
-
-	return links
 }
 
 func absURL(link string, base *url.URL) string {
@@ -202,11 +219,9 @@ func absURL(link string, base *url.URL) string {
 func sanitiseURL(uri *url.URL) *url.URL {
 	// Filtering links
 	// Only fetch HTTP/HTTPS links
-	/*
-		if uri.Scheme != "" && (uri.Scheme != "http" || uri.Scheme != "https") {
-			return nil
-		}
-	*/
+	if uri.IsAbs() && !(uri.Scheme == "http" || uri.Scheme == "https") {
+		return nil
+	}
 
 	// Cleaning empty fragment & path in URL
 	uri.Fragment = ""

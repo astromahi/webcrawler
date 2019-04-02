@@ -5,14 +5,16 @@ import (
 	"crypto/tls"
 	"encoding/json"
 	"flag"
-	"log"
+	"fmt"
 	"net/http"
+	"net/url"
 	"os"
 	"time"
 )
 
 func main() {
-	var uri = flag.String("url", "", "URL to crawl")
+	var uri string
+	flag.StringVar(&uri, "url", "", "URL to crawl")
 	flag.Parse()
 	if flag.NFlag() != 1 {
 		flag.PrintDefaults()
@@ -20,7 +22,12 @@ func main() {
 	}
 
 	if len(*uri) < 1 {
-		log.Println("ERROR: Given URL is empty")
+		fmt.Println("ERROR: Given URL is empty")
+		return
+	}
+
+	if rawURL, err := url.Parse(uri); err != nil || rawURL.Hostname() == "" {
+		fmt.Printf("ERROR: Hostname(%s) is not valid - %s\n", rawURL.Hostname(), err)
 		return
 	}
 
@@ -34,18 +41,18 @@ func main() {
 		},
 	}
 
-	serverURL := `http://127.0.0.1:8080/crawl?uri="` + *uri + `"`
+	serverURL := fmt.Sprintf("http://127.0.0.1:8080/crawl?uri=%s", uri)
 
 	// Validating response
 	resp, err := client.Get(serverURL)
 	defer resp.Body.Close()
 	if err != nil || resp == nil {
-		log.Println("ERROR: Couldn't fetch - ", err)
+		fmt.Println("ERROR: Couldn't fetch - ", err)
 		return
 	}
 
 	if resp.StatusCode >= 300 {
-		log.Println("ERROR: HTTP status code is not success")
+		fmt.Println("ERROR: HTTP status code is not success")
 		return
 	}
 
@@ -54,14 +61,14 @@ func main() {
 	}{}
 
 	if err := json.NewDecoder(resp.Body).Decode(&sitemap); err != nil {
-		log.Println("ERROR: Error while parsing response - ", err)
+		fmt.Println("ERROR: Error while parsing response - ", err)
 	}
 
 	// Printing sitemap
 	for key, val := range sitemap.Data {
-		log.Println(key)
+		fmt.Println(key)
 		for idx := range val {
-			log.Printf("  - %s\n", val[idx])
+			fmt.Printf("  - %s\n", val[idx])
 		}
 	}
 

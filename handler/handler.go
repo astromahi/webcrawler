@@ -13,7 +13,7 @@ import (
 	"webcrawler/crawler"
 )
 
-// A HTTP handler
+// HTTP handler for activating crawl
 func CrawlHandler(w http.ResponseWriter, r *http.Request) {
 	uri := r.URL.Query().Get("uri")
 	log.Println("INFO: Received crawl request for - ", uri)
@@ -51,9 +51,10 @@ func CrawlHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	bot.FetcherFunc = fetcher
 
+	// Deploying the crawler
 	go bot.Crawl(uri)
 
-	<-bot.Quit
+	<-bot.Done
 
 	sitemap := struct {
 		Index map[string][]string `json:"sitemap"`

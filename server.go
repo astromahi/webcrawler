@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"flag"
 	"log"
 	"net/http"
 	"os"
@@ -16,10 +15,12 @@ import (
 	"webcrawler/handler"
 
 	"github.com/gorilla/mux"
+	"github.com/namsral/flag"
 )
 
 func main() {
-	var configFile = flag.String("config", "./config/config.json", "configuration file")
+	var configFile string
+	flag.StringVar(&configFile, "conf", "config/config.json", "configuration file")
 	flag.Parse()
 	if flag.NFlag() != 1 {
 		flag.PrintDefaults()
@@ -30,7 +31,7 @@ func main() {
 		runtime.GOMAXPROCS(nCPU)
 	}
 
-	cfg, err := config.Parse(*configFile)
+	cfg, err := config.Parse(configFile)
 	if err != nil {
 		log.Println("Error while parsing config")
 		os.Exit(2)

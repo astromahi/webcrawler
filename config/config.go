@@ -33,7 +33,6 @@ func Parse(file string) (*Config, error) {
 	}
 
 	var errMain error
-
 	once.Do(func() {
 		// Reading the flags
 		data, err := ioutil.ReadFile(file)
