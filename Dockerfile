@@ -16,7 +16,7 @@ RUN apk update \
     && rm -rf /var/cache/apk/*
 
 RUN apk add -U tzdata
-ADD config /server/config
+ADD config/config.json /server/config/config.json
 
 COPY --from=builder /go/src/webcrawler/server .
 

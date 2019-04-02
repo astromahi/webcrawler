@@ -5,4 +5,5 @@ tmp/
 nohup.out
 .DS_Store
 main
+server
 
