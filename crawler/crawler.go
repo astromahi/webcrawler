@@ -27,6 +27,7 @@ type Crawler struct {
 	Done        chan struct{}
 }
 
+// Helper struct
 type urlctx struct {
 	url   string
 	depth int
@@ -72,7 +73,7 @@ func New(c *config.Config) *Crawler {
 	}
 }
 
-// Crawl intiates the link crawling
+// Crawl initiates the link crawling
 // Control loop that collecting incoming links
 func (c *Crawler) Crawl(seed string) error {
 	var err error
@@ -95,7 +96,9 @@ func (c *Crawler) Crawl(seed string) error {
 	// Setting crawl delay
 	ticker := time.NewTicker(time.Duration(c.crawldelay) * time.Millisecond)
 
+	// Listening queue for inbounds
 	for ctx := range c.queue {
+		// Making sure we are not traversing the same link again & again
 		if alreadyVisited := c.visited[ctx.url]; alreadyVisited {
 			continue
 		}
@@ -173,18 +176,18 @@ func (c *Crawler) parseHTML(reader io.Reader) []string {
 				if t.Attr[idx].Key == "href" {
 					// Making sure the href data is not empty
 					if link := t.Attr[idx].Val; link != "" && link != "#" {
+
+						// Converting the relative URLs into absolute
 						abURL := absURL(link, c.seedURL)
 						if abURL == "" {
 							continue
 						}
 
-						// A smart tracker to handle the duplicate while parsing the
-						// HTML DOM
+						// Tracker to handle the duplicate while traversing the HTML DOM
 						if isAlreadySent := tracker[abURL]; isAlreadySent {
 							continue
 						}
 
-						// Tracker for avoiding duplicates in a depth
 						tracker[abURL] = true
 						links = append(links, abURL)
 					}
@@ -197,6 +200,7 @@ func (c *Crawler) parseHTML(reader io.Reader) []string {
 	}
 }
 
+// Normalising the given URL
 func absURL(link string, base *url.URL) string {
 	u, err := url.Parse(link)
 	if err != nil {
@@ -215,7 +219,7 @@ func absURL(link string, base *url.URL) string {
 	return base.ResolveReference(uri).String()
 }
 
-// Basic sanitation for cleaning the URL
+// Applying sanitation for cleaning URL
 func sanitiseURL(uri *url.URL) *url.URL {
 	// Filtering links
 	// Only fetch HTTP/HTTPS links

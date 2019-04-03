@@ -1,4 +1,4 @@
-// A Client utility for contacting server
+// A Client utility for communication with server
 package main
 
 import (
@@ -21,11 +21,13 @@ func main() {
 		os.Exit(1)
 	}
 
-	if len(*uri) < 1 {
+	if len(uri) < 1 {
 		fmt.Println("ERROR: Given URL is empty")
 		return
 	}
 
+	// Parsing the URL into native structure
+	// And validating the host
 	if rawURL, err := url.Parse(uri); err != nil || rawURL.Hostname() == "" {
 		fmt.Printf("ERROR: Hostname(%s) is not valid - %s\n", rawURL.Hostname(), err)
 		return
@@ -64,7 +66,7 @@ func main() {
 		fmt.Println("ERROR: Error while parsing response - ", err)
 	}
 
-	// Printing sitemap
+	// Printing received sitemap from server
 	for key, val := range sitemap.Data {
 		fmt.Println(key)
 		for idx := range val {

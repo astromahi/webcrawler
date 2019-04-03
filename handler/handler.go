@@ -19,6 +19,7 @@ func CrawlHandler(w http.ResponseWriter, r *http.Request) {
 	log.Println("INFO: Received crawl request for - ", uri)
 	cfg := config.Get()
 
+	// Creating new crawler object
 	bot := crawler.New(cfg)
 
 	// Custom fetcher function
@@ -56,6 +57,7 @@ func CrawlHandler(w http.ResponseWriter, r *http.Request) {
 
 	<-bot.Done
 
+	// Ananymous struct
 	sitemap := struct {
 		Index map[string][]string `json:"sitemap"`
 	}{
